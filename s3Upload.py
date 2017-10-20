@@ -15,15 +15,10 @@
 
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
-# conn = S3Connection('AKIAIJAI2IQBBJYEB57Q', 'Th9pjfDI67usafZpqkqiZW1rRUQc/EhOxkGy2GOC')
-# b = conn.get_bucket('seniordesigngroupb')  # substitute your bucket name here
-# k = Key(b)
-# k.key = fileName
-# k.set_contents_from_file(file)
 
 class S3Client():
-    def __init__(self):
-        self.conn = S3Connection('AKIAIJAI2IQBBJYEB57Q', 'Th9pjfDI67usafZpqkqiZW1rRUQc/EhOxkGy2GOC')
+    def __init__(self, key, otherKey):
+        self.conn = S3Connection(key, otherKey)
 
     def uploadFile(self, bucket, fileName):
         file = open(fileName)
