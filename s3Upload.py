@@ -3,27 +3,14 @@
 # Instagram :: @Cary_MakinMoves
 # LinkedIn  :: https://www.linkedin.com/in/cary-mcewan-000b64140/
 
-# from emailClient import EmailClient
-#
-# fileName = 'cube.ply'
-# file = open(fileName)
-# import boto3
-# s3 = boto3.resource('s3')
-# s3.meta.client.upload_file(fileName, 'seniordesigngroupb', fileName)
-#
-# url = 'https://s3.amazonaws.com/seniordesigngroupb/' + fileName
-
-from boto.s3.connection import S3Connection
-from boto.s3.key import Key
+import boto3
 
 class S3Client():
-    def __init__(self, key, otherKey):
-        self.conn = S3Connection(key, otherKey)
+    def __init__(self):
+        self.s3 = boto3.resource('s3')
 
-    def uploadFile(self, bucket, fileName):
-        file = open(fileName)
-        b = self.conn.get_bucket(str(bucket))
-        k = Key(b)
-        k.key = fileName
-        k.set_contents_from_file(file)
-        return 'https://s3.amazonaws.com/seniordesigngroupb/' + fileName
+    def uploadFile(self, fileName, bucketName):
+        self.s3.meta.client.upload_file(fileName, bucketName, fileName)
+        return 'https://s3.amazonaws.com/' + bucketName + '/' + fileName
+
+S3Client().uploadFile('buddha2.jpg', 'groupbcreol')
