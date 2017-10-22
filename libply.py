@@ -47,12 +47,12 @@ def point_detection(image): # takes an ndimage
     
     # pcLine = zeros(3,500); <-- maybe?
     
-    start_px = 740
-    stop_px = 1560
+    start_px = 739
+    stop_px = 1559
     sample_rate = 10
     
     #im_rotated = im_rotated[start_px:stop_px]
-    pcl = np.zeros((500,3))
+    pcl = np.zeros((3,500))
     
     pcl_count = 0
     y = 0
@@ -61,11 +61,19 @@ def point_detection(image): # takes an ndimage
     # value of each row Z.
     for z in range(start_px, stop_px, sample_rate):
         x = np.argmax(im_rotated[z,:,0])
-        
+        #print("THESE ARE VALS: {}, {},{}".format(x,y,z))
         # Test intensity of pixel if the max brightness is above
         # the threshold 
         if x > np.uint8(50):
-            pcl[pcl_count] = np.array([x,y,z],dtype=np.uint8)
+            pcl[:,pcl_count] = np.array([x,y,z])
             pcl_count = pcl_count + 1
-            
-    return pcl[~np.all(pcl == 0 , axis= 1)]
+
+    return pcl[:,:pcl_count]
+    
+        
+def pcl_rotate(theta, pcl_arr):
+    r = np.array([[np.cos(theta), -np.sin(theta),0],
+                  [np.sin(theta), np.cos(theta), 0],
+                  [0, 0, 1]])
+                  
+    return r.dot(pcl_arr)
