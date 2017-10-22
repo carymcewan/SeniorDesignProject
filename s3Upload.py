@@ -12,5 +12,3 @@ class S3Client():
     def uploadFile(self, fileName, bucketName):
         self.s3.meta.client.upload_file(fileName, bucketName, fileName)
         return 'https://s3.amazonaws.com/' + bucketName + '/' + fileName
-
-S3Client().uploadFile('buddha2.jpg', 'groupbcreol')
