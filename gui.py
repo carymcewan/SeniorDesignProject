@@ -78,7 +78,7 @@ class Scanner():
         self.root.mainloop()
 
     def start(self):
-        self.progressbar.pack(fill=X, expand=1)
+        self.progressbar.pack(fill=X, expand=1, pady=5)
         self.scan()  # start repeated checking
 
     def pause(self):
