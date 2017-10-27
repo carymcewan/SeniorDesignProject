@@ -9,6 +9,6 @@ class S3Client():
     def __init__(self):
         self.s3 = boto3.resource('s3')
 
-    def uploadFile(self, fileName, bucketName):
-        self.s3.meta.client.upload_file(fileName, bucketName, fileName)
+    def uploadFile(self, fileLocation, bucketName, fileName):
+        self.s3.meta.client.upload_file(fileLocation, bucketName, fileName)
         return 'https://s3.amazonaws.com/' + bucketName + '/' + fileName
