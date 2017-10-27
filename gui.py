@@ -1,7 +1,7 @@
-# from StepperClient import StepperClient
+from StepperClient import StepperClient
 from emailClient import EmailClient
 from s3Upload import S3Client
-# from picamera import PiCamera
+from picamera import PiCamera
 from time import sleep
 
 import tkinter.ttk as ttk
@@ -11,19 +11,19 @@ from tkinter import *
 totalSteps = 400
 captureFrequency = 1
 stepCount = 0
+stepDelay = 25
 
 # Initialize modules
-# camera = PiCamera()
-# camera.resolution = (2592, 1944)
-# camera.start_preview() # Comment out for now to bypass camera preview
+camera = PiCamera()
+camera.shutter_speed = 1250
+
 emailClient = EmailClient("Group B Creol", "seniordesigngroupb@gmail.com", "GroupBCreol")
 s3Client = S3Client()
-# stepperClient = StepperClient("bottom")
+stepperClient = StepperClient("right")
 
 class Scanner():
-    def __init__(self, root):
+    def __init__(self, root):        
         self.proceed = None
-
         self.root = root
         self.root.geometry("300x225")
 
@@ -80,7 +80,6 @@ class Scanner():
     def start(self):
         self.progressbar.pack(fill=X, expand=1, pady=5)
         self.scan()  # start repeated checking
-
     def pause(self):
         global proceed
         global stepCount
@@ -107,13 +106,14 @@ class Scanner():
         global stepCount
         global proceed
         if stepCount < totalSteps:
+            stepperClient.step()
             stepCount += 1
             self.status.set("Scanning... {}%".format(int((stepCount / totalSteps) * 100)))
             self.progress.set(stepCount)
             if stepCount % captureFrequency == 0:
                 imageNumber = int(stepCount / captureFrequency)
-                # camera.capture('images/image{}.jpg'.format(imageNumber))
-            proceed = self.root.after(20, self.scan)  # check again in 1 second
+                camera.capture('images/image{}.jpg'.format(imageNumber))
+            proceed = self.root.after(stepDelay, self.scan)  # check again in 1 second
         else:
             self.status.set("Scanning... Complete")
             self.fileNameEntry["state"] = "normal"
@@ -123,9 +123,12 @@ class Scanner():
 
     def sendEmail(self):
         self.status.set("Uploading file to S3...")
+        self.root.update_idletasks()
         link = s3Client.uploadFile("buddha2.jpg", "groupbcreol", self.fileName.get() + ".jpg")
         self.status.set("Uploading file to S3... Complete")
+        self.root.update_idletasks()
         self.status.set("Sending email...")
+        self.root.update_idletasks()
         emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
         self.status.set("Sending email... Complete")
 
