@@ -1,3 +1,5 @@
+# Corresponds to all the matlab functions in *.m files
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage
@@ -44,23 +46,26 @@ def init_ply(point_cloud_data):
 def point_detection(image): # takes an ndimage
 
     im_rotated = ndimage.rotate(image, 180)
-    
-    # pcLine = zeros(3,500); <-- maybe?
-    
+        
     start_px = 739
     stop_px = 1559
     sample_rate = 10
     
-    #im_rotated = im_rotated[start_px:stop_px]
     pcl = np.zeros((3,500))
     
     pcl_count = 0
     y = 0
+        
+    ir = im_rotated[:,:,0] 
+    ig = im_rotated[:,:,1] 
+    ib = im_rotated[:,:,2] 
+        
+    im_rotated = ir - ((ig + ib) / 2)
     # Find the x coordinate of a pixel, using Z and Y = 0
     # The x coordinate is assigned by finding the index of the max
     # value of each row Z.
     for z in range(start_px, stop_px, sample_rate):
-        x = np.argmax(im_rotated[z,:,0])
+        x = np.argmax(im_rotated[z,:])
         #print("THESE ARE VALS: {}, {},{}".format(x,y,z))
         # Test intensity of pixel if the max brightness is above
         # the threshold 
