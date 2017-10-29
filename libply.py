@@ -7,7 +7,7 @@ from scipy import ndimage
 # Replaces element vertex value in line 3 of ply file
 # Only called for the last set of points to reduce read/writes
 def update_vertex_count_ply(updated_vertex_count):
-    file = open('matply.ply')    
+    file = open('C:\\Users\\isaias\\Desktop\\matply.ply')    
 
     lines = file.readlines()
 
@@ -21,13 +21,13 @@ def update_vertex_count_ply(updated_vertex_count):
     file.close()
 
     # Now write the original lines back to the file, this time with then updated vertex count
-    new_file = open('matply.ply', "w")
+    new_file = open('C:\\Users\\isaias\\Desktop\\matply.ply', "w")
     new_file.writelines(lines)
     new_file.close()
 
 def append_ply(pcl):
 
-    with open('matply.ply', 'a') as file:
+    with open('C:\\Users\\isaias\\Desktop\\matply.ply', 'a') as file:
         file.write('\n')
         
         length = pcl.shape[1]
@@ -41,7 +41,24 @@ def append_ply(pcl):
         last_x = pcl[0][-1]
         last_y = pcl[1][-1]
         last_z = pcl[2][-1]
-        file.write("{} {} {}".format(last_x, last_y, last_z))  
+        file.write("{} {} {}".format(last_x, last_y, last_z))
+        
+
+
+
+    """ file = open('matply.ply', 'a')
+    
+    file.write('\n')
+    
+    for point_cloud in point_cloud_data[:-1]:
+        file.write(str.format('{} {} {}\n', point_cloud[0], point_cloud[1], point_cloud[2]))
+        
+    # Print last coordinate without new line
+    last_point = point_cloud_data[-1]
+    file.write(str.format('{} {} {}', last_point[0], last_point[1], last_point[2]))
+    
+    file.close() """
+    
 
 def init_ply():
     # Write the file header. 
@@ -97,20 +114,41 @@ def pcl_rotate(theta, pcl_arr):
 
 
 def main(filename="image"):
+<<<<<<< Updated upstream
     path = "images/"
 
     # Initialize PlyWriter to write PLY file
+=======
+    path = "C:\\Users\\isaias\\Desktop\\images\\"
+    # first image only here
+    # image = ndimage.imread(path + filename + "1 (1).jpg")
+    # pcl = point_detection(image)
+    
+    # Initialize PlyWriter to wriet PLY file
+>>>>>>> Stashed changes
     init_ply()
     vcount = 0
     
     # Loop through the rest
+<<<<<<< Updated upstream
     for i in range(1,401):
         theta = i*(np.pi/200)
         nim = ndimage.imread(path+filename+str(i)+".jpg")
+=======
+    for i in range(1,400):
+        theta = (i-1)*(np.pi/200)
+        nim = ndimage.imread(path+filename+str(i)+" (1).jpg")
+>>>>>>> Stashed changes
         pcl = point_detection(nim)
+        diff = np.ones((3,pcl.shape[0]))
+        diff.fill(952)
         rot = pcl_rotate(theta,pcl)
         append_ply(rot)
         vcount = vcount + pcl.shape[1]
+        # pcl_size = pcl_size + rot.shape[0]
+        
+        # with open("C:\\Users\\isaias\\Desktop\\matply.ply",'a') as plyfile:
+        #   plyfile.write(str.format("{} {} {}", pcl[0], pcl[1], pcl[2]))
    
     update_vertex_count_ply(vcount)
 
