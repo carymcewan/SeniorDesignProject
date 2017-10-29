@@ -1,8 +1,28 @@
 # Corresponds to all the matlab functions in *.m files
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy import ndimage
+
+# Replaces element vertex value in line 3 of ply file
+# Only called for the last set of points to reduce read/writes
+def update_vertex_count_ply(updated_vertex_count):
+    file = open("matply.ply")
+    lines = file.readlines()
+
+    # Element vertex line is always the third line in the file. We split the spaces to get the vertex value
+    # ie. if the line is "element vertex 35", we want "35"
+    # we then replace this value with our updated vertex count
+    element_vertex_line_array = lines[2].split(" ")
+    element_vertex_line_array[2] = str(updated_vertex_count)
+    new_line = " ".join(element_vertex_line_array) + "\n"
+    lines[2] = new_line
+    file.close()
+
+    # Now write the original lines back to the file, this time with then updated vertex count
+    new_file = open("matply.ply", "w")
+    new_file.writelines(lines)
+    new_file.close()
 
 def append_ply(point_cloud_data):
 
@@ -28,8 +48,7 @@ def init_ply(point_cloud_data):
     # Write the file header. 
     
     headers = ['ply\n', 'format ascii 1.0\n', str.format('element vertex {}\n', len(point_cloud_data)), 'property float 32 x\n', 'property float 32 y\n', 'property float 32 z\n', 'end_header\n']
-    for header in headers:
-        file.write(header)
+    file.writelines(headers)
     
     for point_cloud in point_cloud_data[:len(point_cloud_data)-1]:
         file.write(str.format('{} {} {}\n', point_cloud[0], point_cloud[1], point_cloud[2]))
