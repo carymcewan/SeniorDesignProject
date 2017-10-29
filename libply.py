@@ -76,8 +76,8 @@ def init_ply():
 def point_detection(image): # takes an ndimage
     im_rotated = ndimage.rotate(image, 180)
         
-    start_px = 222
-    stop_px = 814
+    start_px = 0
+    stop_px = 2463
     sample_rate = 2
     
     pcl = np.zeros((3,500))
@@ -113,8 +113,8 @@ def pcl_rotate(theta, pcl_arr):
     return r.dot(pcl_arr)
 
 
-def main(filename="image"):
-    path = "C:\\Users\\isaias\\Desktop\\images\\"
+def main():
+    path = "C:\\Users\\isaias\\Desktop\\images\\image"
     # first image only here
     # image = ndimage.imread(path + filename + "1 (1).jpg")
     # pcl = point_detection(image)
@@ -124,14 +124,15 @@ def main(filename="image"):
     vcount = 0
     
     # Loop through the rest
-    for i in range(1,400):
+    for i in range(1,401):
         theta = (i-1)*(np.pi/200)
-        nim = ndimage.imread(path+filename+str(i)+" (1).jpg")
+        nim = ndimage.imread("C:\\Users\\isaias\\Desktop\\images\\image1.jpg")
         pcl = point_detection(nim)
         diff = np.ones((3,pcl.shape[0]))
-        diff.fill(952)
+        diff.fill(2054)
         rot = pcl_rotate(theta,pcl)
         append_ply(rot)
+		print("JUST APPENEDED THIS SHIT")
         vcount = vcount + pcl.shape[1]
         # pcl_size = pcl_size + rot.shape[0]
         
