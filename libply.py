@@ -43,7 +43,7 @@ def append_ply(point_cloud_data):
 def init_ply(point_cloud_data):
     
     # Create ply file
-    file = open('matply.ply', 'w')
+    file = open('C:\\Users\\isaias\\Desktop\\matply.ply', 'w')
     
     # Write the file header. 
     
@@ -63,12 +63,11 @@ def init_ply(point_cloud_data):
 
 # Returns PCL array with dropped empty columns
 def point_detection(image): # takes an ndimage
-
     im_rotated = ndimage.rotate(image, 180)
         
-    start_px = 739
-    stop_px = 1559
-    sample_rate = 10
+    start_px = 222
+    stop_px = 814
+    sample_rate = 2
     
     pcl = np.zeros((3,500))
     
@@ -85,13 +84,13 @@ def point_detection(image): # takes an ndimage
     # value of each row Z.
     for z in range(start_px, stop_px, sample_rate):
         x = np.argmax(im_rotated[z,:])
+        
         #print("THESE ARE VALS: {}, {},{}".format(x,y,z))
         # Test intensity of pixel if the max brightness is above
         # the threshold 
         if x > np.uint8(50):
             pcl[:,pcl_count] = np.array([x,y,z])
             pcl_count = pcl_count + 1
-
     return pcl[:,:pcl_count]
     
         
@@ -101,3 +100,36 @@ def pcl_rotate(theta, pcl_arr):
                   [0, 0, 1]])
                   
     return r.dot(pcl_arr)
+
+
+def main(filename="image"):
+    path = "C:\\Users\\isaias\\Desktop\\images\\"
+    # first image only here
+    image = ndimage.imread(path + filename + "1 (1).jpg")
+    pcl = point_detection(image)
+    
+    pcl_size = pcl.shape[0]
+    # Initialize PlyWriter to wriet PLY file
+    with open("C:\\Users\\isaias\\Desktop\\matply.ply",'w') as plyfile:
+        
+        headers = ['ply\n', 'format ascii 1.0\n', str.format('element vertex {}\n', pcl_size), 'property float 32 x\n', 'property float 32 y\n', 'property float 32 z\n', 'end_header\n']
+        for header in headers:
+            plyfile.write(header)
+        plyfile.write(str.format("{} {} {}", pcl[0], pcl[1], pcl[2]))
+    
+    
+    # Loop through the rest
+    for i in range(1,399):
+        theta = i*(np.pi/200)
+        nim = ndimage.imread(path+filename+str(i)+" (1).jpg")
+        pcl = point_detection(nim)
+        rot = pcl_rotate(theta,pcl)
+        pcl_size = pcl_size + rot.shape[0]
+        
+        with open("C:\\Users\\isaias\\Desktop\\matply.ply",'a') as plyfile:
+            plyfile.write(str.format("{} {} {}", pcl[0], pcl[1], pcl[2]))
+   
+    # at end
+    # write header and ply contents
+        
+            
