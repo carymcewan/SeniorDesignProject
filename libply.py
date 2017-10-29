@@ -1,7 +1,7 @@
 # Corresponds to all the matlab functions in *.m files
 
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from scipy import ndimage
 
 # Replaces element vertex value in line 3 of ply file
@@ -67,7 +67,7 @@ def init_ply():
                'property float32 z\n', 'end_header']
                
     # Create ply file
-    with open('matply.ply', 'w') as file:
+    with open('C:\\Users\\isaias\\Desktop\\matply.ply', 'w') as file:
         file.writelines(headers)
 
 # needs to be passed in :to function im = ndimage.imread('buddha2.jpg')
@@ -114,31 +114,19 @@ def pcl_rotate(theta, pcl_arr):
 
 
 def main(filename="image"):
-<<<<<<< Updated upstream
-    path = "images/"
-
-    # Initialize PlyWriter to write PLY file
-=======
     path = "C:\\Users\\isaias\\Desktop\\images\\"
     # first image only here
     # image = ndimage.imread(path + filename + "1 (1).jpg")
     # pcl = point_detection(image)
     
     # Initialize PlyWriter to wriet PLY file
->>>>>>> Stashed changes
     init_ply()
     vcount = 0
     
     # Loop through the rest
-<<<<<<< Updated upstream
-    for i in range(1,401):
-        theta = i*(np.pi/200)
-        nim = ndimage.imread(path+filename+str(i)+".jpg")
-=======
     for i in range(1,400):
         theta = (i-1)*(np.pi/200)
         nim = ndimage.imread(path+filename+str(i)+" (1).jpg")
->>>>>>> Stashed changes
         pcl = point_detection(nim)
         diff = np.ones((3,pcl.shape[0]))
         diff.fill(952)
@@ -151,43 +139,5 @@ def main(filename="image"):
         #   plyfile.write(str.format("{} {} {}", pcl[0], pcl[1], pcl[2]))
    
     update_vertex_count_ply(vcount)
-
-
-def mainV2(filename="image"):
-    path = "images/"
-
-    # Initialize PlyWriter to write PLY file
-    init_ply()
-    vcount = 0
-
-    # All points
-    bigPCL = []
-
-    # Loop through the rest
-    for i in range(1, 401):
-        theta = i * (np.pi / 200)
-        nim = ndimage.imread(path + filename + str(i) + ".jpg")
-        pcl = point_detection(nim)
-        rot = pcl_rotate(theta, pcl)
-        # append_ply(rot)
-        bigPCL.append(rot)
-        vcount = vcount + pcl.shape[1]
-
-    with open('matply.ply', 'a') as file:
-        for pcl in bigPCL:
-            file.write('\n')
-
-            length = pcl.shape[1]
-            for index in range(length - 1):
-                x = pcl[0][index]
-                y = pcl[1][index]
-                z = pcl[2][index]
-
-                file.write("{} {} {}\n".format(x, y, z))
-
-            last_x = pcl[0][-1]
-            last_y = pcl[1][-1]
-            last_z = pcl[2][-1]
-            file.write("{} {} {}".format(last_x, last_y, last_z))
-
-    update_vertex_count_ply(vcount)
+        
+            
