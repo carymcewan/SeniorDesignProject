@@ -1,13 +1,14 @@
 # Corresponds to all the matlab functions in *.m files
 
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from scipy import ndimage
 
 # Replaces element vertex value in line 3 of ply file
 # Only called for the last set of points to reduce read/writes
 def update_vertex_count_ply(updated_vertex_count):
-    file = open("matply.ply")
+    file = open('matply.ply')    
+
     lines = file.readlines()
 
     # Element vertex line is always the third line in the file. We split the spaces to get the vertex value
@@ -20,44 +21,37 @@ def update_vertex_count_ply(updated_vertex_count):
     file.close()
 
     # Now write the original lines back to the file, this time with then updated vertex count
-    new_file = open("matply.ply", "w")
+    new_file = open('matply.ply', "w")
     new_file.writelines(lines)
     new_file.close()
 
-def append_ply(point_cloud_data):
+def append_ply(pcl):
 
-    file = open('matply.ply', 'a')
-    
-    file.write('\n')
-    
-    for point_cloud in point_cloud_data[:-1]:
-        file.write(str.format('{} {} {}\n', point_cloud[0], point_cloud[1], point_cloud[2]))
+    with open('matply.ply', 'a') as file:
+        file.write('\n')
         
-    # Print last coordinate without new line
-    last_point = point_cloud_data[-1]
-    file.write(str.format('{} {} {}', last_point[0], last_point[1], last_point[2]))
-    
-    file.close()
-    
+        length = pcl.shape[1]
+        for index in range(length-1):
+            x = pcl[0][index]
+            y = pcl[1][index]
+            z = pcl[2][index]
+            
+            file.write("{} {} {}\n".format(x, y, z))
+            
+        last_x = pcl[0][-1]
+        last_y = pcl[1][-1]
+        last_z = pcl[2][-1]
+        file.write("{} {} {}".format(last_x, last_y, last_z))  
 
-def init_ply(point_cloud_data):
-    
-    # Create ply file
-    file = open('C:\\Users\\isaias\\Desktop\\matply.ply', 'w')
-    
+def init_ply():
     # Write the file header. 
-    
-    headers = ['ply\n', 'format ascii 1.0\n', str.format('element vertex {}\n', len(point_cloud_data)), 'property float 32 x\n', 'property float 32 y\n', 'property float 32 z\n', 'end_header\n']
-    file.writelines(headers)
-    
-    for point_cloud in point_cloud_data[:-1]:
-        file.write(str.format('{} {} {}\n', point_cloud[0], point_cloud[1], point_cloud[2]))
-    
-    # Print last coordinate without new line
-    last_point = point_cloud_data[-1]
-    file.write(str.format('{} {} {}', last_point[0], last_point[1], last_point[2]))
-    
-    file.close()
+    headers = ['ply\n', 'format ascii 1.0\n', 'element vertex 0\n', 
+               'property float32 x\n', 'property float32 y\n',
+               'property float32 z\n', 'end_header']
+               
+    # Create ply file
+    with open('C:\\Users\\isaias\\Desktop\\matply.ply', 'w') as file:
+        file.writelines(headers)
 
 # needs to be passed in :to function im = ndimage.imread('buddha2.jpg')
 
@@ -108,15 +102,9 @@ def main(filename="image"):
     image = ndimage.imread(path + filename + "1 (1).jpg")
     pcl = point_detection(image)
     
-    pcl_size = pcl.shape[0]
     # Initialize PlyWriter to wriet PLY file
-    with open("C:\\Users\\isaias\\Desktop\\matply.ply",'w') as plyfile:
-        
-        headers = ['ply\n', 'format ascii 1.0\n', str.format('element vertex {}\n', pcl_size), 'property float 32 x\n', 'property float 32 y\n', 'property float 32 z\n', 'end_header\n']
-        for header in headers:
-            plyfile.write(header)
-        plyfile.write(str.format("{} {} {}", pcl[0], pcl[1], pcl[2]))
-    
+    init_ply()
+    vcount = 0
     
     # Loop through the rest
     for i in range(1,399):
@@ -124,12 +112,9 @@ def main(filename="image"):
         nim = ndimage.imread(path+filename+str(i)+" (1).jpg")
         pcl = point_detection(nim)
         rot = pcl_rotate(theta,pcl)
-        pcl_size = pcl_size + rot.shape[0]
-        
-        with open("C:\\Users\\isaias\\Desktop\\matply.ply",'a') as plyfile:
-            plyfile.write(str.format("{} {} {}", pcl[0], pcl[1], pcl[2]))
+        append_ply(rot)
+        vcount = vcount + pcl.shape[1]
    
-    # at end
-    # write header and ply contents
+    update_vertex_count_ply(vcount)
         
             
