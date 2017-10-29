@@ -30,11 +30,11 @@ def append_ply(point_cloud_data):
     
     file.write('\n')
     
-    for point_cloud in point_cloud_data[:len(point_cloud_data)-1]:
+    for point_cloud in point_cloud_data[:-1]:
         file.write(str.format('{} {} {}\n', point_cloud[0], point_cloud[1], point_cloud[2]))
         
     # Print last coordinate without new line
-    last_point = point_cloud_data[len(point_cloud_data) - 1]
+    last_point = point_cloud_data[-1]
     file.write(str.format('{} {} {}', last_point[0], last_point[1], last_point[2]))
     
     file.close()
@@ -50,11 +50,11 @@ def init_ply(point_cloud_data):
     headers = ['ply\n', 'format ascii 1.0\n', str.format('element vertex {}\n', len(point_cloud_data)), 'property float 32 x\n', 'property float 32 y\n', 'property float 32 z\n', 'end_header\n']
     file.writelines(headers)
     
-    for point_cloud in point_cloud_data[:len(point_cloud_data)-1]:
+    for point_cloud in point_cloud_data[:-1]:
         file.write(str.format('{} {} {}\n', point_cloud[0], point_cloud[1], point_cloud[2]))
     
     # Print last coordinate without new line
-    last_point = point_cloud_data[len(point_cloud_data) - 1]
+    last_point = point_cloud_data[-1]
     file.write(str.format('{} {} {}', last_point[0], last_point[1], last_point[2]))
     
     file.close()
