@@ -1,7 +1,7 @@
 # Corresponds to all the matlab functions in *.m files
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy import ndimage
 
 # Replaces element vertex value in line 3 of ply file
@@ -112,4 +112,44 @@ def main(filename="image"):
         append_ply(rot)
         vcount = vcount + pcl.shape[1]
    
+    update_vertex_count_ply(vcount)
+
+
+def mainV2(filename="image"):
+    path = "images/"
+
+    # Initialize PlyWriter to write PLY file
+    init_ply()
+    vcount = 0
+
+    # All points
+    bigPCL = []
+
+    # Loop through the rest
+    for i in range(1, 401):
+        theta = i * (np.pi / 200)
+        nim = ndimage.imread(path + filename + str(i) + ".jpg")
+        pcl = point_detection(nim)
+        rot = pcl_rotate(theta, pcl)
+        # append_ply(rot)
+        bigPCL.append(rot)
+        vcount = vcount + pcl.shape[1]
+
+    with open('matply.ply', 'a') as file:
+        for pcl in bigPCL:
+            file.write('\n')
+
+            length = pcl.shape[1]
+            for index in range(length - 1):
+                x = pcl[0][index]
+                y = pcl[1][index]
+                z = pcl[2][index]
+
+                file.write("{} {} {}\n".format(x, y, z))
+
+            last_x = pcl[0][-1]
+            last_y = pcl[1][-1]
+            last_z = pcl[2][-1]
+            file.write("{} {} {}".format(last_x, last_y, last_z))
+
     update_vertex_count_ply(vcount)
