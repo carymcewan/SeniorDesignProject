@@ -50,7 +50,7 @@ def init_ply():
                'property float32 z\n', 'end_header']
                
     # Create ply file
-    with open('C:\\Users\\isaias\\Desktop\\matply.ply', 'w') as file:
+    with open('matply.ply', 'w') as file:
         file.writelines(headers)
 
 # needs to be passed in :to function im = ndimage.imread('buddha2.jpg')
@@ -97,24 +97,19 @@ def pcl_rotate(theta, pcl_arr):
 
 
 def main(filename="image"):
-    path = "C:\\Users\\isaias\\Desktop\\images\\"
-    # first image only here
-    image = ndimage.imread(path + filename + "1 (1).jpg")
-    pcl = point_detection(image)
-    
-    # Initialize PlyWriter to wriet PLY file
+    path = "images/"
+
+    # Initialize PlyWriter to write PLY file
     init_ply()
     vcount = 0
     
     # Loop through the rest
-    for i in range(1,399):
+    for i in range(1,401):
         theta = i*(np.pi/200)
-        nim = ndimage.imread(path+filename+str(i)+" (1).jpg")
+        nim = ndimage.imread(path+filename+str(i)+".jpg")
         pcl = point_detection(nim)
         rot = pcl_rotate(theta,pcl)
         append_ply(rot)
         vcount = vcount + pcl.shape[1]
    
     update_vertex_count_ply(vcount)
-        
-            
