@@ -3,8 +3,8 @@
 import numpy as np
 from scipy import ndimage
 
-PATH_PLY = "C:\\Users\\isaias\\Desktop\\matply_demo.ply"
-PATH_IMAGES = "C:\\Users\\isaias\\Documents\\imagesCylinder\\"
+PATH_PLY = "cylinder.ply"
+PATH_IMAGES = "imagesCylinder/"
 
 # Replaces element vertex value in line 3 of ply file
 # Only called for the last set of points to reduce read/writes
@@ -66,8 +66,9 @@ def point_detection(image):
     start_px = 0
     stop_px = 1868
     sample_rate = 2
+    threshold = 50
     
-    pcl = np.zeros((3,5000))
+    pcl = np.zeros((3,2500))
     
     pcl_count = 0
     y = 0
@@ -79,9 +80,10 @@ def point_detection(image):
     im_rotated = ir - ((ig + ib) / 2)
     
     for z in range(start_px, stop_px, sample_rate):
+        intensity = np.amax(im_rotated[z,:])
         
-        x = np.argmax(im_rotated[z,:])
-        if x > 50:            
+        if intensity > np.uint8(threshold):
+            x = np.argmax(im_rotated[z,:])
             pcl[:, pcl_count] = np.array([x,y,z])
             pcl_count = pcl_count + 1
             
@@ -118,12 +120,15 @@ def main():
         diff[0].fill(1751)
 
         rot -= diff
-
-        append_ply(rot)
+        
+        # Save us time from opening a file if there aren't any points to write.
+        if rot.size != 0:
+            append_ply(rot)
+            
         vcount += pcl.shape[1]
-        print("Processed image {}".format(i))
-   
-        update_vertex_count_ply(vcount)
+        print("Processed image {} with {} points.".format(i, rot.shape[1]))
+
+    update_vertex_count_ply(vcount)
 
 if __name__ == "__main__":
     main()
