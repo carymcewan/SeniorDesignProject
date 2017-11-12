@@ -2,7 +2,7 @@ from StepperClient import StepperClient
 from emailClient import EmailClient
 from s3Upload import S3Client
 from picamera import PiCamera
-from libply import *
+from newlibply import *
 from scipy import ndimage
 import time
 
@@ -11,9 +11,12 @@ from tkinter import *
 
 # Declare variables
 totalSteps = 400
+
 captureFrequency = 1
 stepCount = 0
 stepDelay = 25
+
+processImageCount = 0
 
 # Initialize modules
 camera = PiCamera()
@@ -125,40 +128,47 @@ class Scanner():
         else:
             self.status.set("Scanning... Complete")
             self.root.after(1000, self.status.set, "Preparing to construct 3-D representation...")
-            self.root.after(1000, self.processImages)
+            self.root.after(1000, self.processImages, 0, 0)
 
-    def processImages(self, fileName="image"):
-        self.resetButton["state"] = "disabled"
-        self.pauseButton["state"] = "disabled"
-        self.startButton["state"] = "disabled"
-        self.status.set("Constructing 3-D representation... 0%")
+    def processImages(self, imageCount, vertexCount, fileName="image", ):
+        path = "imagesCylinder/"
 
-        path = "images/"
+        if imageCount == 0:
+            self.resetButton["state"] = "disabled"
+            self.pauseButton["state"] = "disabled"
+            self.startButton["state"] = "disabled"
+            self.status.set("Constructing 3-D representation... 0%")
 
-        # Initialize PlyWriter to write PLY file
-        init_ply()
-        vertexCount = 0
-        imageCount = totalSteps
+            init_ply()
 
-        # Loop through the rest
-        for i in range(1, imageCount + 1):
-            self.status.set("Constructing 3-D representation... {}%".format(int((i / imageCount) * 100)))
-            self.progress.set(i)
+        if imageCount < totalSteps:
+            imageCount += 1
+            self.status.set("Constructing 3-D representation... {}%".format(int((imageCount / totalSteps) * 100)))
+            self.progress.set(imageCount)
             self.root.update_idletasks()
-            theta = (i-1)*(np.pi/200)
-            nim = ndimage.imread(path + fileName + str(i) + ".jpg")
+            theta = imageCount * (np.pi / 200)
+            nim = ndimage.imread(path + fileName + str(imageCount) + ".jpg")
             pcl = point_detection(nim)
+            diff = np.zeros((3, pcl.shape[1]))
+            diff[0].fill(1751)
+            pcl -= diff
             rot = pcl_rotate(theta, pcl)
-            append_ply(rot)
+
+            if rot.size != 0:
+                append_ply(rot)
             vertexCount += pcl.shape[0]
 
-        update_vertex_count_ply(vertexCount)
-        self.status.set("Constructing 3-D representation... Complete")
-        self.root.after(1000, self.status.set, "3-D file now ready for upload.")
-        self.fileNameEntry["state"] = "normal"
-        self.nameEntry["state"] = "normal"
-        self.emailEntry["state"] = "normal"
-        self.sendEmailButton["state"] = "normal"
+            proceed = self.root.after(0, self.processImages, imageCount, vertexCount)
+
+        else:
+            update_vertex_count_ply(vertexCount)
+            self.status.set("Constructing 3-D representation... Complete")
+            self.root.after(1000, self.status.set, "3-D file now ready for upload.")
+            self.fileNameEntry["state"] = "normal"
+            self.nameEntry["state"] = "normal"
+            self.emailEntry["state"] = "normal"
+            self.sendEmailButton["state"] = "normal"
+
 
     def sendEmail(self):
         self.status.set("Uploading file to S3...")
