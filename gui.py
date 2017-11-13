@@ -1,10 +1,12 @@
 from StepperClient import StepperClient
-from emailClient import EmailClient
-from s3Upload import S3Client
+from LaserClient import LaserClient
+# from emailClient import EmailClient
+# from s3Upload import S3Client
 from picamera import PiCamera
 from newlibply import *
 from scipy import ndimage
 import time
+import RPi.GPIO as gpio
 
 import tkinter.ttk as ttk
 from tkinter import *
@@ -16,14 +18,21 @@ captureFrequency = 1
 stepCount = 0
 stepDelay = 25
 
+toggleDelay = 0.1
+
 processImageCount = 0
 
 # Initialize modules
 camera = PiCamera()
-camera.shutter_speed = 1250
+camera.shutter_speed = 5000
+camera.resolution = (1920,1080)
 
-emailClient = EmailClient("Group B Creol", "seniordesigngroupb@gmail.com", "GroupBCreol")
-s3Client = S3Client()
+gpio.setmode(gpio.BCM)
+gpio.setup(26, gpio.OUT)
+
+# emailClient = EmailClient("Group B Creol", "seniordesigngroupb@gmail.com", "GroupBCreol")
+# s3Client = S3Client()
+laserClient = LaserClient(26)
 stepperClient = StepperClient("right")
 
 class Scanner():
@@ -123,7 +132,14 @@ class Scanner():
             self.progress.set(stepCount)
             if stepCount % captureFrequency == 0:
                 imageNumber = int(stepCount / captureFrequency)
+
+                laserClient.turnOff()
                 camera.capture('images/image{}.jpg'.format(imageNumber))
+
+                laserClient.turnOn()
+                time.sleep(toggleDelay)
+                
+                camera.capture('images/image{}_laserOff.jpg'.format(imageNumber))
             proceed = self.root.after(stepDelay, self.scan)  # check again in 1 second
         else:
             self.status.set("Scanning... Complete")
@@ -173,12 +189,12 @@ class Scanner():
     def sendEmail(self):
         self.status.set("Uploading file to S3...")
         self.root.update_idletasks()
-        link = s3Client.uploadFile("matply.ply", "groupbcreol", self.fileName.get() + ".jpg")
+        # link = s3Client.uploadFile("matply.ply", "groupbcreol", self.fileName.get() + ".jpg")
         self.status.set("Uploading file to S3... Complete")
         self.root.update_idletasks()
         self.status.set("Sending email...")
         self.root.update_idletasks()
-        emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
+        # emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
         self.status.set("Sending email... Complete")
 
 root = Tk(className="3d Scanning System")
