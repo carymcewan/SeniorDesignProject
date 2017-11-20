@@ -1,0 +1,1 @@
+meshlabserver -i /home/isaias/Documents/surface_reconstruction/cylinder.ply -o /home/isaias/Documents/surface_reconstruction/cylinder_mesh.stl -s /home/isaias/Documents/new_sdp/script.mlx 
