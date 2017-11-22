@@ -1,7 +1,7 @@
 from StepperClient import StepperClient
 from LaserClient import LaserClient
-# from emailClient import EmailClient
-# from s3Upload import S3Client
+from emailClient import EmailClient
+from s3Upload import S3Client
 from picamera import PiCamera
 from newlibply import *
 from scipy import ndimage
@@ -12,10 +12,10 @@ import tkinter.ttk as ttk
 from tkinter import *
 
 # Declare variables
-totalSteps = 400
+totalSteps = 200
 
 #captureFrequency = 5
-captureFrequency = 1
+captureFrequency = 5
 stepCount = 0
 stepDelay = 100
 
@@ -31,8 +31,8 @@ camera.resolution = (3280,2464)
 gpio.setmode(gpio.BCM)
 gpio.setup(26, gpio.OUT)
 
-# emailClient = EmailClient("Group B Creol", "seniordesigngroupb@gmail.com", "GroupBCreol")
-# s3Client = S3Client()
+emailClient = EmailClient("Group B Creol", "seniordesigngroupb@gmail.com", "GroupBCreol")
+s3Client = S3Client()
 laserClient = LaserClient(26)
 stepperClient = StepperClient("right")
 
@@ -136,12 +136,12 @@ class Scanner():
                 imageNumber = int(stepCount / captureFrequency)
 
                 laserClient.turnOff()
-                camera.capture('images/image{}.jpg'.format(imageNumber))
+                camera.capture('calibratorImages/image{}.jpg'.format(imageNumber))
 
                 laserClient.turnOn()
                 time.sleep(toggleDelay)
                 
-                camera.capture('images/image{}_laserOff.jpg'.format(imageNumber))
+                camera.capture('calibratorImages/image{}_laserOff.jpg'.format(imageNumber))
             proceed = self.root.after(stepDelay, self.scan)  # check again in 1 second
         else:
             self.status.set("Scanning... Complete")
@@ -149,7 +149,7 @@ class Scanner():
             self.root.after(1000, self.processImages, 0, 0)
 
     def processImages(self, imageCount, vertexCount, fileName="image", ):
-        path = "images/"
+        path = "calibratorImages/"
 
         if imageCount == 0:
             self.resetButton["state"] = "disabled"
@@ -161,20 +161,22 @@ class Scanner():
 
         if imageCount < totalSteps:
             imageCount += 1
-            self.status.set("Constructing 3-D representation... {}%".format(int((imageCount / totalSteps) * 100)))
-            self.progress.set(imageCount)
-            self.root.update_idletasks()
-            theta = imageCount * (np.pi / 200)
-            nim = ndimage.imread(path + fileName + str(imageCount) + ".jpg")
-            pcl = point_detection(nim)
-            diff = np.zeros((3, pcl.shape[1]))
-            diff[0].fill(1844)
-            pcl -= diff
-            rot = pcl_rotate(theta, pcl)
+            if imageCount % captureFrequency == 0:
+                imageNumber = int(imageCount / captureFrequency)
+                self.status.set("Constructing 3-D representation... {}%".format(int((imageCount / totalSteps) * 100)))
+                self.progress.set(imageCount)
+                self.root.update_idletasks()
+                theta = imageCount * (np.pi / 200)
+                nim = ndimage.imread(path + fileName + str(imageNumber) + ".jpg")
+                pcl = point_detection(nim)
+                diff = np.zeros((3, pcl.shape[1]))
+                diff[0].fill(1751)
+                pcl -= diff
+                rot = pcl_rotate(theta, pcl)
 
-            if rot.size != 0:
-                append_ply(rot)
-            vertexCount += pcl.shape[1]
+                if rot.size != 0:
+                    append_ply(rot)
+                vertexCount += pcl.shape[1]
 
             proceed = self.root.after(0, self.processImages, imageCount, vertexCount)
 
@@ -191,13 +193,13 @@ class Scanner():
     def sendEmail(self):
         self.status.set("Uploading file to S3...")
         self.root.update_idletasks()
-        # link = s3Client.uploadFile("matply.ply", "groupbcreol", self.fileName.get() + ".jpg")
+        link = s3Client.uploadFile("caryTest.ply", "groupbcreol", self.fileName.get() + ".jpg")
         self.status.set("Uploading file to S3... Complete")
         self.root.update_idletasks()
         self.status.set("Sending email...")
         self.root.update_idletasks()
-        # emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
+        emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
         self.status.set("Sending email... Complete")
 
-root = Tk(className="3d Scanning System")
+root = Tk(className="3d Scanning System [calibrator]")
 scanner = Scanner(root)

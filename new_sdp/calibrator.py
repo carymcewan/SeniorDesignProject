@@ -9,7 +9,7 @@ class Calibrator:
         self._square_size = 22  # mm
         self._pattern_size = (9, 7)
         self._pattern_points = None
-        self._data = CalibrationData()
+        # self._data = CalibrationData()
         self._obj_points = []
         self._img_points = []
         self.cmat = []
@@ -73,7 +73,7 @@ class Calibrator:
         self.mean_error = mean_error
 
     def get_calibration_data(self):
-        return self.cmat, self.dist_coefs, rmat, tmat
+        return self.cmat, self.dist_coefs, self.rmat, self.tmat
 
     def _calculate_mean_error(self):
 
@@ -99,7 +99,7 @@ class Calibrator:
         self.dist_coefs = data['dist_coefs']
         self.rmat = data['rmat']
         self.tmat = data['tmat']
-        self.mean_error = data['mean_error'])
+        self.mean_error = data['mean_error']
 
 if __name__ == "__main__":
     calibrator = Calibrator()
