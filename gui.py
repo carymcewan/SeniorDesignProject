@@ -4,7 +4,7 @@ from LaserClient import LaserClient
 # from s3Upload import S3Client
 from picamera import PiCamera
 from newlibply import *
-from scipy import ndimage
+import cv2
 import time
 import RPi.GPIO as gpio
 
@@ -149,7 +149,8 @@ class Scanner():
             self.root.after(1000, self.processImages, 0, 0)
 
     def processImages(self, imageCount, vertexCount, fileName="image", ):
-        path = "images/"
+        path_images = "images/"
+        path_ply = "scan.ply"
 
         if imageCount == 0:
             self.resetButton["state"] = "disabled"
@@ -157,23 +158,30 @@ class Scanner():
             self.startButton["state"] = "disabled"
             self.status.set("Constructing 3-D representation... 0%")
 
-            init_ply()
+            init_ply(path_ply=path_ply)
 
         if imageCount < totalSteps:
             imageCount += 1
             self.status.set("Constructing 3-D representation... {}%".format(int((imageCount / totalSteps) * 100)))
             self.progress.set(imageCount)
             self.root.update_idletasks()
+
+            imfile = path_images + "image" + str(imageCount) + ".jpg"
+            imfile2 = path_images + "image" + str(imageCount) + "_laserOff.jpg"
+
+            image_laser = load_image(imfile)
+            image_bk = load_image(imfile2)
+
             theta = imageCount * (np.pi / 200)
-            nim = ndimage.imread(path + fileName + str(imageCount) + ".jpg")
-            pcl = point_detection(nim)
+            pcl = point_detection(image_laser, image_bk)
             diff = np.zeros((3, pcl.shape[1]))
-            diff[0].fill(1844)
+            diff[0].fill(800)
             pcl -= diff
             rot = pcl_rotate(theta, pcl)
 
             if rot.size != 0:
-                append_ply(rot)
+                append_ply(rot, path_ply=path_ply)
+
             vertexCount += pcl.shape[1]
 
             proceed = self.root.after(0, self.processImages, imageCount, vertexCount)
