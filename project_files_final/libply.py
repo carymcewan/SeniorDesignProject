@@ -1,9 +1,23 @@
-from util import *
-import numpy as np
 import cv2
+import numpy as np
+from util import *
 
-PATH_PLY = "/home/isaias/Pictures/laser.ply"
-PATH_IMAGES ="/home/isaias/Pictures/checkerboardRotation/"
+PATH_PLY = "scan.ply"
+PATH_IMAGES ="images/"
+
+#camera_matrix 
+K = np.array(
+    [[  3.24171244e+03,   0.00000000e+00,   1.06029763e+03],
+     [  0.00000000e+00,   3.25977353e+03,   1.94331846e+03],
+     [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
+
+distortion_coefficients = np.array([0.47016272, 0.398826, 0.08195973, -0.05850632, -0.67014709])
+
+
+fx = K[0][0]
+fy = K[1][1]
+cx = K[0][2]
+cy = K[1][2]
 
 def init_ply():
     # Write the file header. 
@@ -93,13 +107,52 @@ def draw_pattern(image, corners, ret):
 
     return image
 
+def compute_calibration(images, show=False):
+
+    # Arrays to store object points and image points from all the images.
+    objpoints = [] # 3d point in real world space
+    imgpoints = [] # 2d points in image plane.
+    chessboards = [] # images with chessboard painted
+    
+    for fname in images:
+        img = cv2.imread(fname)
+        img = cv2.transpose(img)
+        img = cv2.flip(img, 1)
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+        # Find the chess board corners
+        ret, corners = cv2.findChessboardCorners(gray, (columns,rows), None)
+
+        # If found, add object points, image points (after refining them)
+        if ret:
+            objpoints.append(objp)
+            
+            # Perform corner subpixel detection
+            cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
+            imgpoints.append(corners)
+
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            chessboards.append(img)
+
+    # Perform camera calibration
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
+    # Compute calibration error
+    n = len(objpoints)
+    error = 0
+    for i in range(n):
+        imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
+        error += cv2.norm(imgpoints[i],imgpoints2, cv2.NORM_L2)/(len(imgpoints2))
+    error /= n
+
+    return error, mtx, dist, chessboards
+
 def point_detection(image1, image2):
 
 
-    imlaser = r_rgb(image1)
-    imbk = r_rgb(image2)
+    image_laser = r_rgb(image1)
+    image_background = r_rgb(image2)
 
-    imsub = r_rgb(cv2.subtract(imlaser,imbk))
+    imsub = r_rgb(cv2.subtract(image_laser, image_background))
 
 
     start_px = 0
@@ -126,8 +179,9 @@ def roi_point_detection(image1, image2):
     h, w, d = image1.shape
 
     corners, ret = pattern_detection(image1)
+    
     corners = corners.astype(np.int)
-        
+    
     p1 = corners[0][0]
     p2 = corners[columns - 1][0]
     p3 = corners[columns * (rows - 1)][0]
@@ -146,7 +200,7 @@ def roi_point_detection(image1, image2):
     image_sub = cv2.bitwise_and(image_sub, roi_mask)  
     
     threshold_value = 30
-    image_threshold = cv2.threshold(image_diff_r, threshold_value, 255, cv2.THRESH_TOZERO)[1]
+    image_threshold = cv2.threshold(image_sub, threshold_value, 255, cv2.THRESH_TOZERO)[1]
 
     # Blur image
 
@@ -166,14 +220,23 @@ def roi_point_detection(image1, image2):
         mask[i, _min[i]:_max[i]] = 255
 
     image_stripe = cv2.bitwise_and(image_sub, mask)
-
+    
+    h, w = image_stripe.shape
+    weight_matrix = np.array((np.matrix(np.linspace(0, w - 1, w)).T * np.matrix(np.ones(h))).T)
+    s = image_stripe.sum(axis=1)
+    v = np.where(s > 0)[0]
+    u = (weight_matrix * image_stripe).sum(axis=1)[v] / s[v]
+    
     data = np.vstack((v.ravel(), u.ravel())).T
     model, inliers = ransac(data, LinearLeastSquares2D(), 2, 2)
 
     dr, thetar = model
     f = (dr - v * math.sin(thetar)) / math.cos(thetar)
+    
+    image_line_lr = np.zeros_like(image_threshold)
+    image_line_lr[v, np.around(f).astype(int)] = 255
 
-    image_stripe = cv2.merge((cv2.add(image_diff_r, image_line_lr), image_line_lr, image_line_lr))
+    image_stripe = cv2.merge((cv2.add(image_sub, image_line_lr), image_line_lr, image_line_lr))
 
     image_stripe_r = r_rgb(image_stripe)
 
@@ -182,7 +245,7 @@ def roi_point_detection(image1, image2):
     sample_rate = 2
     threshold = np.uint8(30)
 
-    pcl = np.zeros((3,5000))
+    pcl = np.zeros((3,3500))
 
     pcl_count = 0
     y = 0
@@ -196,7 +259,55 @@ def roi_point_detection(image1, image2):
             pcl_count += 1
     return pcl[:, :pcl_count]
 
+def world_unit_transform(image1, image2):
 
+    points = roi_point_detection(image1, image2)
+    u = points[0, :]
+    v = points[2, :]
+
+    x = np.empty_like(points)
+
+    x[0, :] = (u - cx) / fx
+    x[1, :] = (v - cy) / fy
+    x[2, :] = 1
+
+    corners, objp = findCorners(image_background)
+    ret, rvecs, tvecs = cv2.solvePnP(objp, corners, K, np.array([]))
+    if ret:
+        R = cv2.Rodrigues(rvecs)[0]
+        t = tvecs.T[0]
+        n = R.T[2]
+        d = np.dot(n, t)
+
+        Xc = (d / n.T.dot(x)) * x
+        
+    else:
+        Xc = np.zeros_like(x)
+
+        return Xc
+
+def compute_laser_matrices(filename):
+    # Load point cloud
+    X = load_ply(filename)
+
+    n = X.shape[0]
+    Xm = X.sum(axis=0) / n
+    M = np.array(X - Xm).T
+    
+    # Equivalent to:
+    #  numpy.linalg.svd(M)[0][:,2]
+    # But 1200x times faster for large point clouds
+    U = linalg.svds(M, k=2)[0]
+    normal = np.cross(U.T[0], U.T[1])
+    if normal[2] < 0:
+        normal *= -1
+
+    dist = np.dot(normal, Xm)
+    std = np.dot(M.T, normal).std()
+
+    print("\nNormal vector\n\n{0}\n".format(normal))
+    print("\nPlane distance\n\n{0} mm\n".format(dist))
+    print("\nStandard deviation\n\n{0} mm\n".format(std))
                       
 def main():
 
@@ -233,6 +344,19 @@ def main():
 
     update_vertex_count_ply(vcount)
 
+def load_ply(filename):
+    with open(filename, 'r') as f:
+        line = None
+        header = ''
+        while line != 'end_header\n' and line != '':
+            line = f.readline()
+            header += line
+
+        data = f.readlines()
+        data = [l.split()[:3] for l in data]
+        data = [tuple(l) for l in data]
+
+        return np.array(data, dtype=np.float64)
 
 class LinearLeastSquares2D(object):
     '''
