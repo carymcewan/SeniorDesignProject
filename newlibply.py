@@ -1,12 +1,10 @@
 # coding: utf-8
 
-# from util import *
 import numpy as np
 import cv2
-from scipy import ndimage
 
-PATH_PLY = "caryTest.ply"
-PATH_IMAGES = "imagesCylinder/"
+PATH_PLY = "pointCloudFiles/mug_new_v2_channel_image.ply"
+PATH_IMAGES = "datasets/imagesMugLaserV2/"
 
 def vflip_image(image):
     return cv2.flip(image, 0)
@@ -14,48 +12,48 @@ def vflip_image(image):
 def hflip_image(image):
     return cv2.flip(image, 1)
 
-def init_ply():
-    # Write the file header. 
-    headers = ['ply\n', 'format ascii 1.0\n', 'element vertex 0\n', 
+def init_ply(path_ply=PATH_PLY):
+    # Write the file header.
+    headers = ['ply\n', 'format ascii 1.0\n', 'element vertex 0\n',
                'property float32 x\n', 'property float32 y\n',
                'property float32 z\n', 'end_header']
-               
+
     # Create ply file
-    with open(PATH_PLY, 'w') as file:
+    with open(path_ply, 'w') as file:
         file.writelines(headers)
-        
+
 def pcl_rotate(theta, pcl_arr):
     r = np.array([[np.cos(theta), -np.sin(theta), 0],
                   [np.sin(theta), np.cos(theta), 0],
                   [0, 0, 1]])
-                  
+
     return r.dot(pcl_arr)
 
 def load_image(path):
     image = cv2.imread(path)
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-def append_ply(pcl):
+def append_ply(pcl, path_ply=PATH_PLY):
 
-    with open(PATH_PLY, 'a') as file:
+    with open(path_ply, 'a') as file:
         file.write('\n')
-        
+
         length = pcl.shape[1]
         for index in range(length-1):
             x = pcl[0][index]
             y = pcl[1][index]
             z = pcl[2][index]
-            
+
             file.write("{} {} {}\n".format(x, y, z))
-            
+
         last_x = pcl[0][-1]
         last_y = pcl[1][-1]
         last_z = pcl[2][-1]
         file.write("{} {} {}".format(last_x, last_y, last_z))
 
-def update_vertex_count_ply(updated_vertex_count):
+def update_vertex_count_ply(updated_vertex_count, path_ply=PATH_PLY):
 
-    file = open(PATH_PLY)
+    file = open(path_ply)
 
     lines = file.readlines()
 
@@ -69,20 +67,26 @@ def update_vertex_count_ply(updated_vertex_count):
     file.close()
 
     # Now write the original lines back to the file, this time with then updated vertex count
-    new_file = open(PATH_PLY, "w")
+    new_file = open(path_ply, "w")
     new_file.writelines(lines)
     new_file.close()
 
-def point_detection(image):
+def r_rgb(image):
+    return cv2.split(image)[0]
 
-    # im_rotated = np.rot90(image)
-    # im_rotated = np.rot90(im_rotated)
+def point_detection(imlaser, imbk):
 
-    image = vflip_image(image)
-    im_rotated = hflip_image(image)
+    # image subtraction and channel subtraction
+    imsub = cv2.subtract(imlaser, imbk)
+    r, g, b = cv2.split(imsub)
+    imsub = cv2.subtract(r, cv2.divide(cv2.add(g, b), 2))
+
+    # rotation
+    imsub = vflip_image(imsub)
+    imsub = hflip_image(imsub)
 
     start_px = 0
-    stop_px = 2464
+    stop_px = imsub.shape[0]
     sample_rate = 5
     threshold = 50
 
@@ -92,10 +96,6 @@ def point_detection(image):
 
     pcl_count = 0
     y = 0
-
-    r, g, b = cv2.split(im_rotated)
-
-    imsub = cv2.subtract(r, cv2.divide(cv2.add(g, b), 2))
 
     for z in range(start_px, stop_px, sample_rate):
         intensity = np.amax(imsub[z,:])
@@ -107,37 +107,39 @@ def point_detection(image):
 
     return pcl[:, :pcl_count]
 
-def main():
+def main(path_images=PATH_IMAGES, path_ply=PATH_PLY):
 
-    init_ply()
+    init_ply(path_ply=path_ply)
     vcount = 0
 
     for i in range(1, 401):
 
-        imfile = PATH_IMAGES + "image" + str(i) + ".jpg"
+        imfile = path_images + "image" + str(i) + ".jpg"
+        imfile2 = path_images + "image" + str(i) + "_laserOff.jpg"
+
+        image_laser = load_image(imfile)
+        image_bk = load_image(imfile2)
 
         theta = (i)*(np.pi/200)
 
-        nim = load_image(imfile)
+        pcl = point_detection(image_laser, image_bk)
 
-        pcl = point_detection(nim)
-        
         diff = np.zeros((3, pcl.shape[1]))
-        
-        diff[0].fill(1751)
-        
+
+        diff[0].fill(922)
+
         pcl -= diff
-        
+
         rot = pcl_rotate(theta, pcl)
 
         # Save us time from opening a file if there aren't any points to write.
         if rot.size != 0:
-            append_ply(rot)
-            
-        vcount += pcl.shape[1]
-        print("Processed image DOG {} with {} points.".format(i, rot.shape[1]))
+            append_ply(rot, path_ply=path_ply)
 
-    update_vertex_count_ply(vcount)
+        vcount += pcl.shape[1]
+        print("Processed image {} with {} points.".format(i, rot.shape[1]))
+
+    update_vertex_count_ply(vcount, path_ply=path_ply)
 
 if __name__ == "__main__":
     main()
