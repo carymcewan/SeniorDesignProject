@@ -19,14 +19,14 @@ fy = K[1][1]
 cx = K[0][2]
 cy = K[1][2]
 
-def init_ply():
+def init_ply(path_ply=PATH_PLY):
     # Write the file header. 
     headers = ['ply\n', 'format ascii 1.0\n', 'element vertex 0\n', 
                'property float32 x\n', 'property float32 y\n',
                'property float32 z\n', 'end_header']
                
     # Create ply file
-    with open(PATH_PLY, 'w') as file:
+    with open(path_ply, 'w') as file:
         file.writelines(headers)
         
 def pcl_rotate(theta, pcl_arr):
@@ -40,9 +40,9 @@ def load_image(path):
     image = cv2.imread(path)
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-def append_ply(pcl):
+def append_ply(pcl, path_ply=PATH_PLY):
 
-    with open(PATH_PLY, 'a') as file:
+    with open(path_ply, 'a') as file:
         file.write('\n')
         
         length = pcl.shape[1]
@@ -58,9 +58,9 @@ def append_ply(pcl):
         last_z = pcl[2][-1]
         file.write("{} {} {}".format(last_x, last_y, last_z))
 
-def update_vertex_count_ply(updated_vertex_count):
+def update_vertex_count_ply(updated_vertex_count, path_ply=PATH_PLY):
 
-    file = open(PATH_PLY)
+    file = open(path_ply)
 
     lines = file.readlines()
 
@@ -74,7 +74,7 @@ def update_vertex_count_ply(updated_vertex_count):
     file.close()
 
     # Now write the original lines back to the file, this time with then updated vertex count
-    new_file = open(PATH_PLY, "w")
+    new_file = open(path_ply, "w")
     new_file.writelines(lines)
     new_file.close()
 
