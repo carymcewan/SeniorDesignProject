@@ -147,7 +147,8 @@ class Scanner():
             self.root.after(1000, self.processImages, 0, 0)
 
     def processImages(self, imageCount, vertexCount, fileName="image", ):
-        path = "imagesCylinder/"
+        path_images = "images/"
+        path_ply = "scan.ply"
 
         if imageCount == 0:
             self.resetButton["state"] = "disabled"
@@ -155,7 +156,7 @@ class Scanner():
             self.startButton["state"] = "disabled"
             self.status.set("Constructing 3-D representation... 0%")
 
-            init_ply()
+            init_ply(path_ply=path_ply)
         
         if imageCount < totalSteps:
             imageCount += 1
@@ -167,7 +168,7 @@ class Scanner():
             image_laser = load_image(image_base_path + ".jpg")
             image_background = load_image(image_base_path + "_laserOff.jpg")
 
-            theta = imageCount * (np.pi / 200)
+            theta = imageCount * (2 * np.pi / totalSteps) 
 
             point_stripe = 0.05 * point_detection(image_laser, image_background) 
             
@@ -180,21 +181,10 @@ class Scanner():
             rot = pcl_rotate(theta, point_stripe)
 
             if rot.size != 0 :
-                append_ply(rot)
+                append_ply(rot, path_ply=path_ply)
 
-            vertexCount += point_stripe.shape[0]
-        """
-            nim = ndimage.imread(path + fileName + str(imageCount) + ".jpg")
-            pcl = point_detection(nim)
-            diff = np.zeros((3, pcl.shape[1]))
-            diff[0].fill(1751)
-            pcl -= diff
-            rot = pcl_rotate(theta, pcl)
+            vertexCount += point_stripe.shape[1]
 
-            if rot.size != 0:
-                append_ply(rot)
-            vertexCount += pcl.shape[0]
-        """
             proceed = self.root.after(0, self.processImages, imageCount, vertexCount)
 
         else:
@@ -210,12 +200,12 @@ class Scanner():
     def sendEmail(self):
         self.status.set("Uploading file to S3...")
         self.root.update_idletasks()
-        # link = s3Client.uploadFile("matply.ply", "groupbcreol", self.fileName.get() + ".jpg")
+        link = s3Client.uploadFile("matply.ply", "groupbcreol", self.fileName.get() + ".jpg")
         self.status.set("Uploading file to S3... Complete")
         self.root.update_idletasks()
         self.status.set("Sending email...")
         self.root.update_idletasks()
-        # emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
+        emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
         self.status.set("Sending email... Complete")
 
 root = Tk(className="3d Scanning System")
