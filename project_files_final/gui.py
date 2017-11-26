@@ -25,7 +25,7 @@ processImageCount = 0
 # Initialize modules
 camera = PiCamera()
 camera.shutter_speed = 5000
-camera.resolution = (1920,1080)
+camera.resolution = (3280, 2464) # (1920,1080)
 
 gpio.setmode(gpio.BCM)
 gpio.setup(26, gpio.OUT)
@@ -164,7 +164,7 @@ class Scanner():
             self.progress.set(imageCount)
             self.root.update_idletasks()
 
-            image_base_path = path + fileName + str(imageCount)
+            image_base_path = path_images + fileName + str(imageCount)
             image_laser = load_image(image_base_path + ".jpg")
             image_background = load_image(image_base_path + "_laserOff.jpg")
 
