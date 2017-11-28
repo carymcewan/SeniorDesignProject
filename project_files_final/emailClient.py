@@ -26,4 +26,8 @@ class EmailClient():
     def sendScanEmail(self, recipientName, recipientEmail, link):
         content = str.format("Hey {},\n\nYour scan is now complete and is ready for download here:\n{}\n\nEnjoy,\nGroup B CREOL", recipientName, link)
         return self.sendMail(recipientName, recipientEmail, "Scan Complete", content)
+    
+    def sendScanEmails(self, recipientName, recipientEmail, plyLink, stlLink):
+        content = str.format("Hey {},\n\nYour scan is now complete and is ready for download here:\nPLY: {}\nSTL: {}\n\nEnjoy,\nGroup B CREOL", recipientName, plyLink, stlLink)
+        return self.sendMail(recipientName, recipientEmail, "Scan Complete", content)
 

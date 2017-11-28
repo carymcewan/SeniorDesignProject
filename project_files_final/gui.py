@@ -4,9 +4,8 @@ from emailClient import EmailClient
 from s3Upload import S3Client
 from picamera import PiCamera
 from libply import *
-from scipy import ndimage
 import time
-import RPi.GPIO as gpio
+import subprocess
 
 import tkinter.ttk as ttk
 from tkinter import *
@@ -16,30 +15,30 @@ totalSteps = 400
 
 captureFrequency = 1
 stepCount = 0
-stepDelay = 25
+stepDelay = 10
 
-toggleDelay = 0.1
+toggleDelay = 0.05
 
 processImageCount = 0
 
 # Initialize modules
 camera = PiCamera()
 camera.shutter_speed = 5000
-camera.resolution = (3280, 2464) # (1920,1080)
+camera.resolution = (1080, 1080) # (1920,1080)
 
-gpio.setmode(gpio.BCM)
-gpio.setup(26, gpio.OUT)
+# gpio.setmode(gpio.BCM)
+# gpio.setup(26, gpio.OUT)
 
-emailClient = EmailClient("Group B Creol", "seniordesigngroupb@gmail.com", "GroupBCreol")
-s3Client = S3Client()
-laserClient = LaserClient(26)
+LEDs = [17, 27, 22]
+
+laserClient = LaserClient(4)
 stepperClient = StepperClient("right")
 
 class Scanner():
     def __init__(self, root):
         self.proceed = None
         self.root = root
-        self.root.geometry("300x225")
+        self.root.geometry("400x225")
 
         self.status = StringVar()
         self.status.set("Preparing to scan...")
@@ -134,19 +133,27 @@ class Scanner():
                 imageNumber = int(stepCount / captureFrequency)
 
                 laserClient.turnOff()
-                camera.capture('images/image{}.jpg'.format(imageNumber))
+                # camera.capture('images/image{}.jpg'.format(imageNumber), use_video_port=True)
 
                 laserClient.turnOn()
                 time.sleep(toggleDelay)
                 
-                camera.capture('images/image{}_laserOff.jpg'.format(imageNumber))
+                # camera.capture('images/image{}_laserOff.jpg'.format(imageNumber), use_video_port=True)
             proceed = self.root.after(stepDelay, self.scan)  # check again in 1 second
         else:
             self.status.set("Scanning... Complete")
             self.root.after(1000, self.status.set, "Preparing to construct 3-D representation...")
             self.root.after(1000, self.processImages, 0, 0)
 
-    def processImages(self, imageCount, vertexCount, fileName="image", ):
+    def mesh(self):
+        process = subprocess.Popen("meshlabserver -i scan.ply -o mesh.stl -s script.mlx", shell=True, stdout=subprocess.PIPE)
+        process.wait()
+        self.fileNameEntry["state"] = "normal"
+        self.nameEntry["state"] = "normal"
+        self.emailEntry["state"] = "normal"
+        self.sendEmailButton["state"] = "normal"
+
+    def processImages(self, imageCount, vertexCount, fileName="image"):
         path_images = "images/"
         path_ply = "scan.ply"
 
@@ -160,7 +167,10 @@ class Scanner():
         
         if imageCount < totalSteps:
             imageCount += 1
-            self.status.set("Constructing 3-D representation... {}%".format(int((imageCount / totalSteps) * 100)))
+            if imageCount == totalSteps:
+                self.status.set("Constructing 3-D representation... Complete. Meshing point cloud...")
+            else:
+                self.status.set("Constructing 3-D representation... {}%".format(int((imageCount / totalSteps) * 100)))
             self.progress.set(imageCount)
             self.root.update_idletasks()
 
@@ -168,19 +178,22 @@ class Scanner():
             image_laser = load_image(image_base_path + ".jpg")
             image_background = load_image(image_base_path + "_laserOff.jpg")
 
-            theta = imageCount * (2 * np.pi / totalSteps) 
+            theta = imageCount * (np.pi / 200) 
 
-            point_stripe = 0.05 * point_detection(image_laser, image_background) 
+            point_stripe = point_detection(image_laser, image_background) 
             
             diff = np.zeros((3, point_stripe.shape[1]))
 
-            diff[0].fill(700)
+            diff[0].fill(450)
 
             point_stripe -= diff
+            
+            point_stripe[0] *= 1.55
 
             rot = pcl_rotate(theta, point_stripe)
 
             if rot.size != 0 :
+                rot *= 0.088
                 append_ply(rot, path_ply=path_ply)
 
             vertexCount += point_stripe.shape[1]
@@ -188,24 +201,33 @@ class Scanner():
             proceed = self.root.after(0, self.processImages, imageCount, vertexCount)
 
         else:
-            update_vertex_count_ply(vertexCount)
-            self.status.set("Constructing 3-D representation... Complete")
-            self.root.after(1000, self.status.set, "3-D file now ready for upload.")
-            self.fileNameEntry["state"] = "normal"
-            self.nameEntry["state"] = "normal"
-            self.emailEntry["state"] = "normal"
-            self.sendEmailButton["state"] = "normal"
+            update_vertex_count_ply(vertexCount, path_ply=path_ply)
+            # self.status.set("Constructing 3-D representation... Complete")
+            self.root.after(1000, self.status.set, "Constructing 3-D representation... Complete. Meshing point cloud...")
+            # self.root.after(1000, os.system, "meshlabserver -i scan.ply -o mesh.stl -s script.mlx")
+            # os.system("meshlabserver -i scan.ply -o mesh.stl -s script.mlx")
+            # self.root.update_idletasks()
+            # process = subprocess.Popen("meshlabserver -i scan.ply -o mesh.stl -s script.mlx", shell=True, stdout=subprocess.PIPE)
+            # self.root.after(100, self.mesh)
+            # process.wait()
+            # self.root.update_idletasks()
+            self.root.after(1000, self.mesh)
+            self.root.after(1000, self.status.set, "Meshing point cloud... Complete. 3-D file now ready for upload.")
+            
 
 
     def sendEmail(self):
+        emailClient = EmailClient("Group B Creol", "seniordesigngroupb@gmail.com", "GroupBCreol")
+        s3Client = S3Client()
         self.status.set("Uploading file to S3...")
         self.root.update_idletasks()
-        link = s3Client.uploadFile("matply.ply", "groupbcreol", self.fileName.get() + ".jpg")
+        plyLink = s3Client.uploadFile("scan.ply", "groupbcreol", self.fileName.get() + ".ply")
+        stlLink = s3Client.uploadFile("mesh.stl", "groupbcreol", self.fileName.get() + ".stl")
         self.status.set("Uploading file to S3... Complete")
         self.root.update_idletasks()
         self.status.set("Sending email...")
         self.root.update_idletasks()
-        emailClient.sendScanEmail(self.name.get(), self.email.get(), link)
+        emailClient.sendScanEmails(self.name.get(), self.email.get(), plyLink, stlLink)
         self.status.set("Sending email... Complete")
 
 root = Tk(className="3d Scanning System")

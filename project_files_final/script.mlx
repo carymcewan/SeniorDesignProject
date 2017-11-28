@@ -1,15 +1,23 @@
 <!DOCTYPE FilterScript>
-
 <FilterScript>
-    <filter name ="Compute normals for point sets">
-        <Param type="RichInt" value="100" name="K"/>
-        <Param type="RichBool" value="false" name="flipFlag"/>
-        <Param x="0" y="0" z="0" type="RichPoint3f" name="viewPos"/>
-    </filter>
-    <filter name="Surface Reconstruction: Poisson">
-        <Param type="RichInt" value="8" name="OctDepth"/>
-        <Param type="RichInt" value="6" name="SolverDivide"/>
-        <Param type="RichFloat" value="1" name="SamplesPerNode"/>
-        <Param type="RichFloat" value="1" name="Offset"/>
-    </filter>
+ <filter name="Poisson-disk Sampling">
+  <Param name="SampleNum" description="Number of samples" value="250000" tooltip="The desired number of samples. The ray of the disk is calculated according to the sampling density." type="RichInt"/>
+  <Param name="Radius" description="Explicit Radius" min="0" max="119.088" value="0" tooltip="If not zero this parameter override the previous parameter to allow exact radius specification" type="RichAbsPerc"/>
+  <Param name="MontecarloRate" description="MonterCarlo OverSampling" value="2000" tooltip="The over-sampling rate that is used to generate the intial Montecarlo samples (e.g. if this parameter is &lt;i>K&lt;/i> means that&lt;i>K&lt;/i> x &lt;i>poisson sample&lt;/i> points will be used). The generated Poisson-disk samples are a subset of these initial Montecarlo samples. Larger this number slows the process but make it a bit more accurate." type="RichInt"/>
+  <Param name="ApproximateGeodesicDistance" description="Approximate Geodesic Distance" value="false" tooltip="If true Poisson Disc distances are computed using an approximate geodesic distance, e.g. an euclidean distance weighted by a function of the difference between the normals of the two points." type="RichBool"/>
+  <Param name="Subsample" description="Base Mesh Subsampling" value="true" tooltip="If true the original vertices of the base mesh are used as base set of points. In this case the SampleNum should be obviously much smaller than the original vertex number.&lt;br>Note that this option is very useful in the case you want to subsample a dense point cloud." type="RichBool"/>
+  <Param name="RefineFlag" description="Refine Existing Samples" value="false" tooltip="If true the vertices of the below mesh are used as starting vertices, and they will utterly refined by adding more and more points until possible. " type="RichBool"/>
+  <Param name="RefineMesh" description="Samples to be refined" value="0" tooltip="Used only if the above option is checked. " type="RichMesh"/>
+ </filter>
+ <filter name="Compute normals for point sets">
+  <Param name="K" description="Neighbour num" value="200" tooltip="The number of neighbors used to estimate normals." type="RichInt"/>
+  <Param name="flipFlag" description="Flip normals w.r.t. viewpoint" value="false" tooltip="If the 'viewpoint' (i.e. scanner position) is known, it can be used to disambiguate normals orientation, so that all the normals will be oriented in the same direction." type="RichBool"/>
+  <Param name="viewPos" description="Viewpoint Pos." x="0" y="0" z="0" tooltip="The viewpoint position can be set by hand (i.e. getting the current viewpoint) or it can be retrieved from mesh camera, if the viewpoint position is stored there." type="RichPoint3f"/>
+ </filter>
+ <filter name="Surface Reconstruction: Poisson">
+  <Param name="OctDepth" description="Octree Depth" value="10" tooltip="Set the depth of the Octree used for extracting the final surface. Suggested range 5..10. Higher numbers mean higher precision in the reconstruction but also higher processing times. Be patient.&#xa;" type="RichInt"/>
+  <Param name="SolverDivide" description="Solver Divide" value="6" tooltip="This integer argument specifies the depth at which a block Gauss-Seidel solver is used to solve the Laplacian equation.&#xa;Using this parameter helps reduce the memory overhead at the cost of a small increase in reconstruction time. &#xa;In practice, the authors have found that for reconstructions of depth 9 or higher a subdivide depth of 7 or 8 can reduce the memory usage.&#xa;The default value is 8.&#xa;" type="RichInt"/>
+  <Param name="SamplesPerNode" description="Samples per Node" value="1" tooltip="This floating point value specifies the minimum number of sample points that should fall within an octree node as the octree&#xa;construction is adapted to sampling density. For noise-free samples, small values in the range [1.0 - 5.0] can be used.&#xa;For more noisy samples, larger values in the range [15.0 - 20.0] may be needed to provide a smoother, noise-reduced, reconstruction.&#xa;The default value is 1.0." type="RichFloat"/>
+  <Param name="Offset" description="Surface offsetting" value="1" tooltip="This floating point value specifies a correction value for the isosurface threshold that is chosen.&#xa;Values &lt; 1 means internal offsetting, >1 external offsetting.Good values are in the range 0.5 .. 2.&#xa;The default value is 1.0 (no offsetting)." type="RichFloat"/>
+ </filter>
 </FilterScript>
