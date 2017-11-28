@@ -6,6 +6,7 @@ from picamera import PiCamera
 from libply import *
 import time
 import subprocess
+import RPi.GPIO as gpio
 
 import tkinter.ttk as ttk
 from tkinter import *
@@ -26,12 +27,13 @@ camera = PiCamera()
 camera.shutter_speed = 5000
 camera.resolution = (1080, 1080) # (1920,1080)
 
-# gpio.setmode(gpio.BCM)
-# gpio.setup(26, gpio.OUT)
+#gpio.setmode(gpio.BCM)
+#gpio.setup(26, gpio.OUT)
 
 LEDs = [17, 27, 22]
 
 laserClient = LaserClient(4)
+
 stepperClient = StepperClient("right")
 
 class Scanner():
@@ -133,12 +135,12 @@ class Scanner():
                 imageNumber = int(stepCount / captureFrequency)
 
                 laserClient.turnOff()
-                # camera.capture('images/image{}.jpg'.format(imageNumber), use_video_port=True)
+                camera.capture('images/image{}.jpg'.format(imageNumber), use_video_port=True)
 
                 laserClient.turnOn()
                 time.sleep(toggleDelay)
                 
-                # camera.capture('images/image{}_laserOff.jpg'.format(imageNumber), use_video_port=True)
+                camera.capture('images/image{}_laserOff.jpg'.format(imageNumber), use_video_port=True)
             proceed = self.root.after(stepDelay, self.scan)  # check again in 1 second
         else:
             self.status.set("Scanning... Complete")
